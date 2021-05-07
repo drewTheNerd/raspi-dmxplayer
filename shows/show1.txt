@@ -1,0 +1,1 @@
+Name:”RGB Basic Show”,DelayTime-MS:”1000”,1:255,2:0,3:0,4:255,DELAY,
