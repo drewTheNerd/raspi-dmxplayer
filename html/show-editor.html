@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8" />
+		<title>Raspi DMX Player | Show Editor</title>
+		<link rel="stylesheet" type="text/css" href="../css/main.css" />
+		<link rel="preconnect" href="https://fonts.gstatic.com">
+		<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+		<script src="https://kit.fontawesome.com/5038d07fd4.js" crossorigin="anonymous"></script>
+
+
+		<!-- WEBSOCKET SETUP CODE -->
+		<script type="text/javascript">
+			console.log('open: ');
+			var ws = new WebSocket("ws://localhost:8081");
+			var whatShowToEdit;
+			var showData;
+
+			ws.onopen = function (event) {
+			  console.log('Connection is open ...');
+
+			  ws.send("whatShowToEdit?");
+			};
+
+			ws.onerror = function (err) {
+			  console.log('err: ', err);
+			}
+
+			ws.onmessage = function (event) {
+			  	console.log(event.data);
+			  	var message = event.data;
+
+				if (message.substring(0, 15) == "whatShowToEdit?") {
+	  				whatShowToEdit = message.substring(17, message.length-2);
+	  				document.getElementById('showFileName').innerHTML = whatShowToEdit;
+	  				ws.send("getShow(" + whatShowToEdit + ")");
+	  			}
+
+	  			if (message.substring(0, 7) == "getShow") {
+	  				showData = message.substring(9, message.length-2);
+	  				document.getElementById('show-editor-data-input').value = showData;
+	  			}
+			};
+
+			ws.onclose = function() {
+			  console.log("Connection is closed...");
+			}
+
+
+
+			function saveShow(fileName, newShowData) {
+				console.log("sending saveShow[" + fileName + "](" + newShowData + ")");
+				ws.send("saveShow[" + fileName + "](" + newShowData + ")");
+			}
+		</script>
+	</head>
+	<body class="html-body">
+		<div class="header">
+		<a href="./shows.html"><< Back</a>
+			<div class="header-right">
+				<a class="logo" href="./shows.html">Save</a>
+			</div>
+		</div>
+		
+		<div class="body">
+			<h1 class="bold">Show Editor</h1>
+			<p>This is the raw show data editor. <span style="color: red; font-weight: bold;">WARNING:</span> for experienced users only. Edits made here can <span style="color: red; font-weight: bold;">crash</span> Raspi DMX Player.</p>
+			<div class="panel">
+				<div class="card">
+					<h3>Filename:</h3>
+					<code id="showFileName"></code>
+
+					<h3>Data:</h3>
+					<textarea value="data" rows="25" value="" class="show-editor-text-area" id="show-editor-data-input" onchange=""></textarea>
+
+					<div class="show-save-box">
+						<a class="show-save" href="./shows.html" onclick="saveShow(document.getElementById('showFileName').innerHTML, document.getElementById('show-editor-data-input').value)">Save</a>
+					</div>
+
+					<p>&nbsp</p>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

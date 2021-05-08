@@ -14,8 +14,12 @@
 			var ws = new WebSocket("ws://localhost:8081");
 
 			ws.onopen = function (event) {
-			  console.log('Connection is open ...');
-			  //ws.send("Hello Server. Drew was here");
+			  	console.log('Connection is open ...');
+			  
+			  	// once connected, ask server for last saved values
+				for (var i = 1; i < 513; i++) {
+					ws.send("restoreDMXchannelSave(" + addZeroes(i) + ")");
+				}
 			};
 
 			ws.onerror = function (err) {
@@ -23,7 +27,15 @@
 			}
 
 			ws.onmessage = function (event) {
-			  console.log(event.data);
+				//console.log(event.data);
+
+				var message = event.data;
+				if (message.substring(0, 21) == "restoreDMXchannelSave") {
+	  				var ch = parseInt(message.substring(22, 25));
+	  				var val = parseInt(message.substring(26, 29));
+	  				document.getElementById('channel-slider-'+ch).value = val;
+					document.getElementById('channel-number-'+ch).value = val;
+	  			}
 			};
 
 			ws.onclose = function() {
@@ -50,6 +62,7 @@
 				if (channelControlEnable) {
 					ws.send("setDMX(" + ch + "," + val + ")");
 				}
+				ws.send("saveDMXchannel(" + ch + "," + val + ")");
 			}
 
 			function channelNumberChange(ch) {
@@ -59,6 +72,27 @@
 				ch = addZeroes(ch);
 				if (channelControlEnable) {
 					ws.send("setDMX(" + ch + "," + val + ")");
+				}
+				ws.send("saveDMXchannel(" + ch + "," + val + ")");
+			}
+
+			function resetAllChannels() {
+				if (confirm("Warning! Are you sure you want to reset all channels?")) {
+					var i = 1;
+					var myInterval = setInterval(function(){
+						if (i < 513) {
+							document.getElementById('channel-number-'+i).value = 0;
+							document.getElementById('channel-slider-'+i).value = 0;
+							var ch = addZeroes(i);
+							if (channelControlEnable) {
+								ws.send("setDMX(" + ch + ",000)");
+							}
+							ws.send("saveDMXchannel(" + ch + ",000)");
+							i++;
+						} else {
+							myInterval = null;
+						}
+					}, 50);
 				}
 			}
 		</script>
@@ -76,6 +110,7 @@
 		
 		<div class="body">
 			<h1 class="bold">DMX Channel Control</h1>
+			<p>This page is designed as a temporary DMX override page. To schedule static scenes, use the <a href="./scheduler.html">Scheduler</a> page instead.</p>
 			<p>
 				<button id='enableDisableChannelControlButton' onclick='
 				if (channelControlEnable) {
@@ -89,20 +124,12 @@
 					this.innerHTML = "Channel Control Enabled"
 					this.style.background = "green"
 				}'>Channel Control Disabled</button>
-				<button>Reset All Channels</button>
+				<button id='resetAllChannelsButton' onclick='resetAllChannels();'>Reset All Channels</button>
 			</p>
 			<blockquote>
 				<p>1. <input type="range" min="0" max="255" value="0" class="channel-slider" id="channel-slider-1" onchange="channelSliderChange(1);"><input type="number" min="0" max="255" maxlength="3" id="channel-number-1" onchange="channelNumberChange(1)"></p>
-				<p>2. <input type="range" min="0" max="255" value="0" class="channel-slider" id="channel-slider-2" onchange="channelSliderChange(2);"><input type="number" min="0" max="255" maxlength="3" id="channel-number-2" onchange="channelNumberChange(2)"></p>
-				<p>3. <input type="range" min="0" max="255" value="0" class="channel-slider" id="channel-slider-3" onchange="channelSliderChange(3);"><input type="number" min="0" max="255" maxlength="3" id="channel-number-3" onchange="channelNumberChange(3)"></p>
-				<p>4. <input type="range" min="0" max="255" value="0" class="channel-slider" id="channel-slider-4" onchange="channelSliderChange(4);"><input type="number" min="0" max="255" maxlength="3" id="channel-number-4" onchange="channelNumberChange(4)"></p>
+				{{DATA}}
 			</blockquote>
-			<script type="text/javascript">
-				for (var i = 1; i < 256; i++) {
-					document.getElementById('channel-number-'+i).value = 0;
-					document.getElementById('channel-slider-'+i).value = 0;
-				}
-			</script>
 		</div>
 	</body>
 </html>
