@@ -14,5 +14,13 @@ Raspi DMX Player is an Node.JS app designed to play back DMX shows, controllable
 - scheduler page has button that sends data back to server via websocket
 - channels page has 4 channels with sliders and text input. sends setDMX(ch, val) on slider or number change (via websocket)
 
-Version 0.1.2 - CURRENT EDITING VERSION
-- 
+## Version 0.1.2
+**Channels Page**
+- added `dmx-channels-save.txt` to root
+- added automatic restoration of previous channel state on load
+- added reset all channels button
+
+**Shows Page**
+- added show-editor HTML page
+- added renaming functionality for shows page
+- added direct show editing functionality on show-editor page
