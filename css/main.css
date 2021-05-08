@@ -4,6 +4,11 @@ body {
   font-weight: 400;
 }
 
+a {
+  text-decoration: none;
+  color: dodgerblue;
+}
+
 
 .bold {
   font-weight: 500;
@@ -130,9 +135,11 @@ td, th {
 .Show_ActionButton {
   border: none; /* Remove borders */
   background-color: white;
+  color: black;
   transition: 0.3s;
 }
 .Show_ActionButton:hover {
+  cursor: pointer;
   color: dodgerblue;
   transition: 0.3s;
 }
@@ -170,5 +177,74 @@ input[type=number], select {
   border-radius: 4px;
   padding: 5px 10px;
 }
+
+
+#resetAllChannelsButton {
+  color: white;
+  background: red;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+}
+
+
+#resetAllChannelsButton:active {
+  background: black;
+}
+
+
+
+.show-save-box {
+  padding: 20px 0px;
+}
+
+.show-save {
+  float: left;
+  color: black;
+  text-align: center;
+  padding: 12px;
+  text-decoration: none;
+  font-size: 18px;
+  line-height: 25px;
+  border-radius: 4px;
+  transition: 0.3s;
+  font-family: "Roboto Mono", sans-serif;
+
+  font-size: 25px;
+  font-weight: bold;  
+}
+
+.show-save:hover {
+  background-color: dodgerblue;
+  color: white;
+  transition: 0.3s;
+}
+
+
+
+
+
+.show-editor-text-input {
+  width: 300px;
+  padding: 6px 8px;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+
+.show-editor-text-area {
+  width: 100%;
+  padding: 6px 8px;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+
+
+
 
 
