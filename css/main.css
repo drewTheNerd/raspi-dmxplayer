@@ -26,6 +26,10 @@ a {
   transition: 0.3s;
 }
 
+.code-font {
+  font-family: "Roboto Mono", sans-serif;
+}
+
 
 
 
@@ -137,6 +141,7 @@ td, th {
   background-color: white;
   color: black;
   transition: 0.3s;
+  padding: 0px 5px;
 }
 .Show_ActionButton:hover {
   cursor: pointer;
@@ -225,7 +230,7 @@ input[type=number], select {
 
 
 .show-editor-text-input {
-  width: 300px;
+  width: 100%;
   padding: 6px 8px;
   display: inline-block;
   border: 1px solid #ccc;
