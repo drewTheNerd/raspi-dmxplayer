@@ -13,13 +13,9 @@
 		<script type="text/javascript">
 			console.log('open: ');
 			var ws = new WebSocket("ws://localhost:8081");
-			var whatShowToEdit;
-			var showData;
 
 			ws.onopen = function (event) {
 			  console.log('Connection is open ...');
-
-			  ws.send("whatShowToEdit?");
 			};
 
 			ws.onerror = function (err) {
@@ -29,17 +25,6 @@
 			ws.onmessage = function (event) {
 			  	console.log(event.data);
 			  	var message = event.data;
-
-				if (message.substring(0, 15) == "whatShowToEdit?") {
-	  				whatShowToEdit = message.substring(17, message.length-2);
-	  				document.getElementById('showFileName').innerHTML = whatShowToEdit;
-	  				ws.send("getShow(" + whatShowToEdit + ")");
-	  			}
-
-	  			if (message.substring(0, 7) == "getShow") {
-	  				showData = message.substring(9, message.length-2);
-	  				document.getElementById('show-editor-data-input').value = showData;
-	  			}
 			};
 
 			ws.onclose = function() {
@@ -48,7 +33,7 @@
 
 
 
-			function saveShow(showName, fileName, delayMS, data) {
+			function createNewShow(showName, fileName, delayMS, data) {
 				if (showName != "" && fileName != "" && delayMS!= "") {
 					if (fileName.substring(fileName.length-5, fileName.length) == ".json") {
 						console.log("sending createNewShow(\'" + showName + "\',\'" + fileName + "\',\'" + delayMS + "\',\'" + data + "\')");
@@ -68,14 +53,25 @@
 		</div>
 		
 		<div class="body">
-			<h1 class="bold">Show Editor</h1>
-			<p>This is the raw show data editor. <span style="color: red; font-weight: bold;">WARNING:</span> for experienced users only.</p>
+			<h1 class="bold">New Show</h1>
+			<p>Here is where you can create new shows.</p>
 			<div class="panel">
 				<div class="card">
-					{{DATA}}
+					<h3>Show Name:</h3>
+					<input class="show-editor-text-input" id="showNameInput"></input>
+
+					<h3>Filename:</h3>
+					<p>Must inculde extension <code>.json</code>. If two file names are the same, the old one will be overwritten.</p>
+					<input value="show999.json" class="show-editor-text-input code-font" id="fileNameInput"></input>
+
+					<h3>Delay (milliseconds):</h3>
+					<input class="show-editor-text-input" id="delayMSinput" type="number" value="100"></input>
+
+					<h3>Data:</h3>
+					<textarea value="data" rows="25" value="" class="show-editor-text-area" id="dataInput"></textarea>
 
 					<div class="show-save-box">
-						<a class="show-save" href="./shows.html" onclick="saveShow(document.getElementById('showNameInput').value, document.getElementById('showFileName').innerHTML, document.getElementById('delayMSinput').value, document.getElementById('dataInput').value)">Save</a>
+						<a class="show-save" href="./shows.html" onclick="createNewShow(document.getElementById('showNameInput').value, document.getElementById('fileNameInput').value, document.getElementById('delayMSinput').value, document.getElementById('dataInput').value)">Save</a>
 					</div>
 
 					<p>&nbsp</p>
