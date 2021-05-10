@@ -1,5 +1,5 @@
 # raspi-dmxplayer
-Raspi DMX Player is an Node.JS app designed to play back DMX shows, controllable via a web interface. The final result will be a device with Cellular and 2 universes of DMX output, controllable by loggin in via RealVNC and opening up `localhost:8080/index.html`. Raspi DMX Player is written by and copyright of Drew Shipps.
+Raspi DMX Player is an Node.JS app designed to play back DMX shows, controllable via a web interface. The final result will be a Raspberry Pi based device with cellular connectivity and 2 universes of DMX output, controllable by loggin in via RealVNC and opening up `localhost:8080/index.html`. Raspi DMX Player is written by and copyright of Drew Shipps.
 
 
 # Version History
