@@ -35,3 +35,7 @@ Raspi DMX Player is an Node.JS app designed to play back DMX shows, controllable
 
 **Scheduler**
 - added temporary play and stop buttons for shows (*note NaN bug*)
+
+## Version 0.1.4 - CURRENT EDITING VERSION
+- added schedulers.JSON file to hold all scheduler objects
+- added new and delete buttons to scheduler page
