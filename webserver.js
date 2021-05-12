@@ -48,6 +48,9 @@ console.log("Version ".info + VERSION.version().info);
 var nextShowToEdit;
 var playShowInterval;
 
+var allSchedulers;
+readSchedulersJSON();
+
 
 /* ================================================= */
 /*  UTILITY                                          */
@@ -65,6 +68,20 @@ function addZeroes(number) {
 		number = "0" + number;
 	}
 	return number;
+}
+
+function formatDate(date) {
+    var d = new Date(date),
+        month = '' + (d.getMonth() + 1),
+        day = '' + d.getDate(),
+        year = d.getFullYear();
+
+    if (month.length < 2) 
+        month = '0' + month;
+    if (day.length < 2) 
+        day = '0' + day;
+
+    return [year, month, day].join('-');
 }
 
 function createNewShow(showName, fileName, delayMS, data) {
@@ -86,6 +103,66 @@ function createNewShow(showName, fileName, delayMS, data) {
 	  	}
 	})
 }
+
+function readSchedulersJSON() {
+	console.log(colors.cyan("Reading schedulers..."));
+	fs.readFile('./schedulers.JSON', function(err, data) {
+		allSchedulers = JSON.parse(String(data));
+	});
+}
+
+function updateSchedulersJSON() {
+	var fileData = JSON.stringify(allSchedulers);
+	fs.writeFile('./schedulers.JSON', fileData, err => {
+	  	if (err) {
+	    	console.error(err)
+	    	return
+	  	}
+	})
+	console.log(colors.cyan("Updated saved schedulers file."));
+}
+
+function addScheduler(name, showName, showFileName, frequency, frequencyRepeat, startTime, endTime) {
+	var newScheduler = {
+	  	name: name,
+	  	showName: showName,
+	  	showFileName: showFileName,
+	  	frequency: frequency,
+	  	frequencyRepeat: frequencyRepeat,
+	  	startTime: startTime,
+	  	endTime: endTime
+	}
+	allSchedulers.schedulers.push(newScheduler)
+	console.log(colors.cyan("Created a new scheduler."));
+	updateSchedulersJSON();
+}
+
+function returnObject(name, showName, showFileName, frequency, frequencyRepeat, startTime, endTime) {
+	var object = {
+	  	name: name,
+	  	showName: showName,
+	  	showFileName: showFileName,
+	  	frequency: frequency,
+	  	frequencyRepeat: frequencyRepeat,
+	  	startTime: startTime,
+	  	endTime: endTime
+	}
+	return object;
+}
+
+function deleteSchedulerAtIndex(index) {
+	allSchedulers.schedulers.splice(index, 1);
+	updateSchedulersJSON();
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -127,7 +204,7 @@ function playShow(show) {
 /*  HTTP SERVER                                      */
 /* ================================================= */
 http.createServer(function (req, res) {
-	if (req.url === '/favicon.ico' || req.url.substring(0, 11) === '/socket.io/') {
+	if (req.url.substring(0, 11) === '/socket.io/') {
 		// do nothing because this is not stored on the local server
 		console.log(colors.error("The requested URL does not exist on this server. (" + req.url + ")"));
 	} else if (req.url === '/') {
@@ -167,15 +244,17 @@ http.createServer(function (req, res) {
 
 	} else if (req.url === '/html/shows.html') {
 		console.log("Serving " + req.url);	
-		var showsTable = "";
+		var showsTable = [];
+		var i = 0;
 
 		let filenames = fs.readdirSync("./shows/");
   
 		filenames.forEach((file) => {
 			fs.readFile('./shows/' + file, function(err, data) {
 				if (file[0] != '.') {
+
 					var thisShow = JSON.parse(String(data));
-					showsTable = showsTable + '<tr><td>'
+					showsTable[i] = '<tr><td>'
 					+ thisShow.name + '<a href="../html/shows.html" class="Show_ActionButton Show_ActionButton_Right" onclick="renameShow(\'' 
 					+ file + '\',\'' + thisShow.name + '\')"><i class="fas fa-pen"></i></a></td><td>'
 					+ file + '</td><td><a href="../html/show-editor.html?fileName='
@@ -183,6 +262,7 @@ http.createServer(function (req, res) {
 					+ '<a href="../html/shows.html" class="Show_ActionButton redbutton" onclick="deleteShow(\''
 					+ file + '\')"><i class="fas fa-trash-alt"></i></a></td></tr>';
 				}
+				i++;
 			});
 		});
 
@@ -191,7 +271,15 @@ http.createServer(function (req, res) {
 				res.writeHead(200, {'Content-Type': 'text/html'});
 				var webpage = String(data).split('{{DATA}}');
 
-				var result = webpage[0] + showsTable + webpage[1];
+				showsTable.sort();
+				
+				var result = webpage[0]
+				for (var i = 0; i < showsTable.length; i++) {
+					if (showsTable[i] != undefined) {
+						result += showsTable[i];
+					}
+				}
+				result += webpage[1];
 
 				res.write(result);
 				res.end();
@@ -227,7 +315,6 @@ http.createServer(function (req, res) {
 		});
 
 
-
 	} else if (req.url === '/html/settings.html') {
 		console.log("Serving " + req.url);
 		var fileName = req.url.substring(32, req.url.length);
@@ -243,21 +330,21 @@ http.createServer(function (req, res) {
 		});
 
 
-	} else if (req.url === '/html/scheduler.html') {
+
+	} else if (req.url === '/html/new-scheduler.html') {
 		console.log("Serving " + req.url);	
 		let filenames = fs.readdirSync("./shows/");
-  		var code = "";
-
+  		var resultTable = [];
+		var i = 0;
+  
 		filenames.forEach((file) => {
 			fs.readFile('./shows/' + file, function(err, data) {
 				if (file[0] != '.') {
 					var thisShow = JSON.parse(String(data));
-					code = code + '<button class="Show_ActionButton" onclick="playShow(\'' 
-					+ file + '\')"><i class="fas fa-play"></i></button>Play ' + 
-					+ String(file) + '<button class="Show_ActionButton" onclick="stopShow(\'' 
-					+ file + '\')"><i class="fas fa-stop"></i></button><br>';
-					// werid error with printing NaN here isntead of file name - maybe bc of + signs?
+					resultTable[i] = '<option value="' + filenames[i] + ' (' + thisShow.name + ')">' 
+					+ filenames[i] + ' (' + thisShow.name + ')</option>';
 				}
+				i++;
 			});
 		});
 
@@ -265,6 +352,270 @@ http.createServer(function (req, res) {
 	  		fs.readFile('.' + req.url, function(err, data) {
 				res.writeHead(200, {'Content-Type': 'text/html'});
 				var webpage = String(data).split('{{DATA}}');
+
+				resultTable.sort();
+				
+				var result = webpage[0]
+				for (var i = 0; i < resultTable.length; i++) {
+					if (resultTable[i] != undefined) {
+						result += resultTable[i];
+					}
+				}
+				result += webpage[1];
+
+				res.write(result);
+				res.end();
+			});
+		}, 200);
+
+
+	} else if (req.url === '/html/scheduler.html') {
+		console.log("Serving " + req.url);
+
+		readSchedulersJSON();
+
+		setTimeout(function(){
+	  		fs.readFile('.' + req.url, function(err, data) {
+				res.writeHead(200, {'Content-Type': 'text/html'});
+				var webpage = String(data).split('{{DATA}}');
+
+				var code = "";
+				for (var i = 0; i < allSchedulers.schedulers.length; i++) {
+					code = code + `
+					<tr>
+						<td>` + allSchedulers.schedulers[i].name + `</td>
+						<td>` + allSchedulers.schedulers[i].showName + ` (` + allSchedulers.schedulers[i].showFileName + `)</td>
+						<td>` + allSchedulers.schedulers[i].frequency + ` (` + allSchedulers.schedulers[i].frequencyRepeat + `)</td>
+						<td><code>` + allSchedulers.schedulers[i].startTime + `</code></td>
+						<td><code>` + allSchedulers.schedulers[i].endTime + `</code></td>
+						<td><a href="../html/scheduler-editor.html?index=`
+						+ i + `" class="Show_ActionButton"><i class="fas fa-edit" aria-hidden="true"></i></a>
+						<a href="./scheduler.html" class="Show_ActionButton redbutton" onclick="deleteSchedulerAtIndex(` + 
+						i + `)"><i class="fas fa-trash-alt" aria-hidden="true"></i></a></td>
+					</tr>
+					`
+				}
+
+				var result = webpage[0] + code + webpage[1];
+
+				res.write(result);
+				res.end();
+			});
+		}, 200);
+
+
+	} else if (req.url.substring(0, 27) === '/html/scheduler-editor.html') {
+		console.log("Serving " + req.url);
+		var index = req.url.substring(34, req.url.length);
+
+		let filenames = fs.readdirSync("./shows/");
+  		var resultTable = [];
+		var i = 0;
+  
+		filenames.forEach((file) => {
+			fs.readFile('./shows/' + file, function(err, data) {
+				if (file[0] != '.') {
+					var thisShow = JSON.parse(String(data));
+
+					if (allSchedulers.schedulers[index].showFileName == filenames[i]) {
+						resultTable[i] = '<option value="' + filenames[i] + ' (' + thisShow.name + ')" selected="selected">' 
+						+ filenames[i] + ' (' + thisShow.name + ')</option>';
+					} else {
+						resultTable[i] = '<option value="' + filenames[i] + ' (' + thisShow.name + ')">' 
+						+ filenames[i] + ' (' + thisShow.name + ')</option>';
+					}
+				}
+				i++;
+			});
+		});
+
+		
+		//allSchedulers.schedulers[index].
+
+
+		setTimeout(function(){
+	  		fs.readFile('.' + req.url.substring(0, 27), function(err, data) {
+				res.writeHead(200, {'Content-Type': 'text/html'});
+				var webpage = String(data).split('{{DATA}}');
+
+				resultTable.sort();
+				var showsDropdown = '';
+				for (var i = 0; i < resultTable.length; i++) {
+					if (resultTable[i] != undefined) {
+						showsDropdown += resultTable[i];
+					}
+				}
+
+				var code = `
+					<h3>Name:</h3>
+					<input class="scheduler-text-input" id="schedulerNameInput" value="` + allSchedulers.schedulers[index].name + `"></input>
+					<br>
+
+					<h3>Select Show:</h3>
+					<select class="scheduler-shows-dropdown" id="schedulerShowInput">
+						<option value="">-- Choose --</option>
+						` + showsDropdown + `
+					</select>
+					<br>
+
+					<h3>Timing: </h3>
+					<div class="scheduler-time-input-div">
+						Start Time: &nbsp;
+						<input type="time" class="scheduler-time-input" id="start-time" value="` + allSchedulers.schedulers[index].startTime 
+						+ `"></input>
+						<br>
+						End Time: &nbsp;&nbsp;&nbsp;
+						<input type="time" class="scheduler-time-input" id="end-time" value="` + allSchedulers.schedulers[index].endTime
+						 + `"></input>
+						<br>
+					</div>
+
+					<div class="float scheduler-frequency-header">
+						<h3>Frequency: </h3>
+					</div>
+					<div class="float scheduler-frequency-radios">
+						<form>`
+							if (allSchedulers.schedulers[index].frequency == "Daily") {
+								code = code + `<input type="radio" id="frequency-daily" name="Frequency" 
+								value="Daily" onclick="showFrequencyPicker(1);" checked><label for="Daily">Daily</label><br>`
+							} else {
+								code = code + `<input type="radio" id="frequency-daily" name="Frequency" 
+								value="Daily" onclick="showFrequencyPicker(1);"><label for="Daily">Daily</label><br>`
+							}
+
+							if (allSchedulers.schedulers[index].frequency == "Weekly") {
+								code = code + `<input type="radio" id="frequency-weekly" name="Frequency" 
+								value="Weekly" onclick="showFrequencyPicker(2);" checked><label for="Weekly">Weekly</label><br>`
+							} else {
+								code = code + `<input type="radio" id="frequency-weekly" name="Frequency" 
+								value="Weekly" onclick="showFrequencyPicker(2);"><label for="Weekly">Weekly</label><br>`
+							}
+
+							if (allSchedulers.schedulers[index].frequency == "One-Time") {
+								code = code + `<input type="radio" id="frequency-one-time" name="Frequency" 
+								value="One-Time" onclick="showFrequencyPicker(3);" checked><label for="One-Time">One Time</label>`
+							} else {
+								code = code + `<input type="radio" id="frequency-one-time" name="Frequency" 
+								value="One-Time" onclick="showFrequencyPicker(3);"><label for="One-Time">One Time</label>`
+							}
+							code = code + `
+						</form>
+					</div>
+
+					<div class="vl float"></div>`;
+
+					if (allSchedulers.schedulers[index].frequency == "Daily") {
+						code += `<div id="dailyRepeatPicker" style="display: block;">`
+					} else {
+						code += `<div id="dailyRepeatPicker" style="display: none;">`
+					}
+					code += `
+						<div class="float scheduler-frequency-radios">
+							<form>
+								<input type="radio" id="EveryDay" name="dailyRepeat" value="EveryDay"`
+								if (allSchedulers.schedulers[index].frequencyRepeat == 0) code += ` checked`
+								code += `>
+								<label><span class="boldprint">Every Day</span></label><br>
+								<input type="radio" id="EveryNumberOfDays" name="dailyRepeat" value="EveryNumberOfDays"`
+								if (allSchedulers.schedulers[index].frequencyRepeat != 0) code += ` checked`
+								code += `>
+								<label><span class="boldprint">Every </span></label>
+								<input type="number" min=1 class="scheduler-days-number-input" id="scheduler-days-number-input"`
+								if (allSchedulers.schedulers[index].frequencyRepeat != 0) {
+									code += ` value=` + allSchedulers.schedulers[index].frequencyRepeat
+								}
+								code += `></input>
+								<label><span class="boldprint"> days</span></label>
+							</form>
+						</div>
+					</div>`
+
+					var weekly = (allSchedulers.schedulers[index].frequency == "Weekly");
+
+					if (allSchedulers.schedulers[index].frequency == "Weekly") {
+						code += `<div id="weeklyRepeatPicker" style="display: block;">`
+					} else {
+						code += `<div id="weeklyRepeatPicker" style="display: none;">`
+					}
+					code += `
+						<div class="float scheduler-frequency-radios">
+							<form>
+								<input type="checkbox" value="7" class="FrequencyCheckbox" id="Sunday"`
+								if (weekly && allSchedulers.schedulers[index].frequencyRepeat.includes(7)) {
+									code += ` checked`
+								}
+								code += `><label><span class="boldprint">Sunday</span></label>
+								<br>
+								<input type="checkbox" value="1" class="FrequencyCheckbox" id="Monday"`
+								if (weekly && allSchedulers.schedulers[index].frequencyRepeat.includes(1)) {
+									code += ` checked`
+								}
+								code += `>
+								<label><span class="boldprint">Monday</span></label>
+								<br>
+								<input type="checkbox" value="2" class="FrequencyCheckbox" id="Tuesday"`
+								if (weekly && allSchedulers.schedulers[index].frequencyRepeat.includes(2)) {
+									code += ` checked`
+								}
+								code += `>
+								<label><span class="boldprint">Tuesday</span></label>
+								<br>
+								<input type="checkbox" value="3" class="FrequencyCheckbox" id="Wednesday"`
+								if (weekly && allSchedulers.schedulers[index].frequencyRepeat.includes(3)) {
+									code += ` checked`
+								}
+								code += `>
+								<label><span class="boldprint">Wednesday</span></label>
+								<br>
+								<input type="checkbox" value="4" class="FrequencyCheckbox" id="Thursday"`
+								if (weekly && allSchedulers.schedulers[index].frequencyRepeat.includes(4)) {
+									code += ` checked`
+								}
+								code += `>
+								<label><span class="boldprint">Thursday</span></label>
+								<br>
+								<input type="checkbox" value="5" class="FrequencyCheckbox" id="Friday"`
+								if (weekly && allSchedulers.schedulers[index].frequencyRepeat.includes(5)) {
+									code += ` checked`
+								}
+								code += `>
+								<label><span class="boldprint">Friday</span></label>
+								<br>
+								<input type="checkbox" value="6" class="FrequencyCheckbox" id="Saturday"`
+								if (weekly && allSchedulers.schedulers[index].frequencyRepeat.includes(6)) {
+									code += ` checked`
+								}
+								code += `>
+								<label><span class="boldprint">Saturday</span></label>
+							</form>
+						</div>
+					</div>`
+
+					if (allSchedulers.schedulers[index].frequency == "One-Time") {
+						code += `<div id="onetimeRepeatPicker" style="display: block;">`
+					} else {
+						code += `<div id="onetimeRepeatPicker" style="display: none;">`
+					}
+					code += `
+						<div class="float scheduler-frequency-radios">
+							<form>
+								<input type="date" id="one-time-date" name="one-time-date" min="2021-05-01" value=`
+								+ allSchedulers.schedulers[index].frequencyRepeat +
+								`>
+							</form>
+						</div>
+					</div>
+
+					<div style="width: 100%"><br><br><br><br><br><br><br><br><br><br></div>
+
+					<div class="panel-full">
+						<div class="show-save-box">
+							<a class="show-save" href="./scheduler.html" onclick="editScheduler(` + index + `)">Save</a>
+						</div>
+					</div>
+
+					<p>&nbsp</p>
+				`
 
 				var result = webpage[0] + code + webpage[1];
 
@@ -307,6 +658,7 @@ http.createServer(function (req, res) {
 /* ================================================= */
 wss.on('connection', ((ws) => {
   	ws.on('message', (message) => {
+  		console.log(message)
 
 	  	// DMX CHANNEL CONTROL WEBSOCKETS
 	  	if (message.substring(0, 6) == "setDMX") {
@@ -392,19 +744,24 @@ wss.on('connection', ((ws) => {
 
 
 
-	  	// TEMP SHOW PLAYER SOCKET
-	  	if (message.substring(0, 8) == "playShow") {
-	  		var showFileName = message.substring(9, message.length-1);
-	  		console.log(colors.cyan("Playing show " + './shows/' + showFileName));
-
-	  		fs.readFile('./shows/' + showFileName, function(err, data) {
-				var show = JSON.parse(data);
-				playShow(show);
-			});
+	  	// SCHEDULER EDITING SOCKETS
+	  	if (message.substring(0, 12) == "addScheduler") {
+	  		console.log(colors.cyan("Adding new scheduler " + message.substring(13, message.length)));
+	  		eval(message);
 	  	}
 
-	  	if (message.substring(0, 8) == "stopShow") {
-	  		clearInterval(playShowInterval);
+	  	if (message.substring(0, 13) == "editScheduler") {
+	  		var messageSplit = message.split(']');
+	  		var index = messageSplit[0].substring(14, messageSplit[0].length);
+	  		var object = eval("returnObject" + messageSplit[1]);
+	  		allSchedulers.schedulers[index] = object;
+			updateSchedulersJSON();
+			console.log(colors.cyan("Edited scheduler " + index));
+	  	}
+
+	  	if (message.substring(0, 22) == "deleteSchedulerAtIndex") {
+	  		console.log(colors.cyan("Deleting scheduler at index " + message.substring(23, message.length-1)));
+	  		eval(message);
 	  	}
 	  	
 	});
