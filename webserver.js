@@ -254,13 +254,14 @@ http.createServer(function (req, res) {
 				if (file[0] != '.') {
 
 					var thisShow = JSON.parse(String(data));
-					showsTable[i] = '<tr><td>'
+					var row = '<tr><td>'
 					+ thisShow.name + '<a href="../html/shows.html" class="Show_ActionButton Show_ActionButton_Right" onclick="renameShow(\'' 
 					+ file + '\',\'' + thisShow.name + '\')"><i class="fas fa-pen"></i></a></td><td>'
 					+ file + '</td><td><a href="../html/show-editor.html?fileName='
 					+ file + '" class="Show_ActionButton"><i class="fas fa-edit"></i></a>'
 					+ '<a href="../html/shows.html" class="Show_ActionButton redbutton" onclick="deleteShow(\''
 					+ file + '\')"><i class="fas fa-trash-alt"></i></a></td></tr>';
+					showsTable.push([parseInt(file.substring(5, 8)), row]);
 				}
 				i++;
 			});
@@ -270,13 +271,21 @@ http.createServer(function (req, res) {
 	  		fs.readFile('.' + req.url, function(err, data) {
 				res.writeHead(200, {'Content-Type': 'text/html'});
 				var webpage = String(data).split('{{DATA}}');
-
-				showsTable.sort();
 				
+				showsTable.sort(sortFunction);
+				function sortFunction(a, b) {
+				    if (a[0] === b[0]) {
+				        return 0;
+				    }
+				    else {
+				        return (a[0] < b[0]) ? -1 : 1;
+				    }
+				}
+
 				var result = webpage[0]
 				for (var i = 0; i < showsTable.length; i++) {
 					if (showsTable[i] != undefined) {
-						result += showsTable[i];
+						result += showsTable[i][1];
 					}
 				}
 				result += webpage[1];
