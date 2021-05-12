@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8" />
+		<title>Raspi DMX Player | Show Editor</title>
+		<link rel="stylesheet" type="text/css" href="../css/main.css" />
+		<link rel="preconnect" href="https://fonts.gstatic.com">
+		<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+		<script src="https://kit.fontawesome.com/5038d07fd4.js" crossorigin="anonymous"></script>
+		<link rel="apple-touch-icon" sizes="180x180" href="../icon/apple-touch-icon.png">
+		<link rel="icon" type="image/png" sizes="32x32" href="../icon/favicon-32x32.png">
+		<link rel="icon" type="image/png" sizes="16x16" href="../icon/favicon-16x16.png">
+		<link rel="manifest" href="../icon/site.webmanifest">
+
+		<!-- WEBSOCKET SETUP CODE -->
+		<script type="text/javascript">
+			console.log('open: ');
+			var ws = new WebSocket("ws://localhost:8081");
+
+			ws.onopen = function (event) {
+			  console.log('Connection is open ...');
+			};
+
+			ws.onerror = function (err) {
+			  console.log('err: ', err);
+			}
+
+			ws.onmessage = function (event) {
+			  	console.log(event.data);
+			  	var message = event.data;
+			};
+
+			ws.onclose = function() {
+			  console.log("Connection is closed...");
+			}
+
+
+
+			function editScheduler(index) {
+				var name = document.getElementById('schedulerNameInput').value;
+
+				var showInput = document.getElementById('schedulerShowInput').value;
+				showInput = showInput.split('(');
+				var showName = showInput[1].substring(0, showInput[1].length-1);
+				var showFileName = showInput[0].substring(0, showInput[0].length-1);
+				var frequency;
+				var frequencyRepeat;
+
+				if (document.getElementById('frequency-daily').checked) {
+					frequency = "Daily";
+					if (document.getElementById('EveryDay').checked) {
+						frequencyRepeat = 0;
+					} else {
+						frequencyRepeat = document.getElementById('scheduler-days-number-input').value;
+					}
+				} else if (document.getElementById('frequency-weekly').checked) {
+					frequency = "Weekly";
+
+					frequencyRepeat = [
+						document.getElementById('Sunday').checked ? 0 : 9,
+						document.getElementById('Monday').checked ? 1 : 9,
+						document.getElementById('Tuesday').checked ? 2 : 9,
+						document.getElementById('Wednesday').checked ? 3 : 9,
+						document.getElementById('Thursday').checked ? 4 : 9,
+						document.getElementById('Friday').checked ? 5 : 9,
+						document.getElementById('Saturday').checked ? 6 : 9
+					]
+
+					frequencyRepeat = frequencyRepeat.filter(isNotNine);
+				} else if (document.getElementById('frequency-one-time').checked) {
+					frequency = "One-Time";
+
+
+					var d = new Date(document.getElementById('one-time-date').value),
+				        month = '' + (d.getMonth() + 1),
+				        day = '' + (d.getDate() + 1),
+				        year = d.getFullYear();
+
+				    if (month.length < 2) 
+				        month = '0' + month;
+				    if (day.length < 2) 
+				        day = '0' + day;
+
+				    frequencyRepeat = [year, month, day].join('-');
+				}
+
+				var startTime = document.getElementById('start-time').value;
+				var endTime = document.getElementById('end-time').value;
+
+				ws.send("editScheduler[" + index + "]('" + name + "', '" + showName + "', '" + showFileName + "', '" + frequency + "', '" + frequencyRepeat + "', '" + startTime + "', '" + endTime + "')");
+			}
+
+			function isNotNine(number) {
+			  return number != 9;
+			}
+
+
+
+			function showFrequencyPicker(number) {
+				if (number == 1) {
+					document.getElementById('dailyRepeatPicker').style.display = "block";
+					document.getElementById('weeklyRepeatPicker').style.display = "none";
+					document.getElementById('onetimeRepeatPicker').style.display = "none";
+				} else if (number == 2) {
+					document.getElementById('dailyRepeatPicker').style.display = "none";
+					document.getElementById('weeklyRepeatPicker').style.display = "block";
+					document.getElementById('onetimeRepeatPicker').style.display = "none";
+				} else if (number == 3) {
+					document.getElementById('dailyRepeatPicker').style.display = "none";
+					document.getElementById('weeklyRepeatPicker').style.display = "none";
+					document.getElementById('onetimeRepeatPicker').style.display = "block";
+				} else {
+					document.getElementById('dailyRepeatPicker').style.display = "none";
+					document.getElementById('weeklyRepeatPicker').style.display = "none";
+					document.getElementById('onetimeRepeatPicker').style.display = "none";
+				}
+			}
+		</script>
+	</head>
+	<body class="html-body">
+		<div class="header">
+		<a href="./scheduler.html"><< Back</a>
+		</div>
+		
+		<div class="body">
+			<h1 class="bold">Edit Scheduler</h1>
+			<p>Here you can make edits to previously created schedulers.</p>
+			<div class="new-scheduler-panel">
+				<div class="card">
+					{{DATA}}
+				</div>
+			</div>
+		</div>
+	</body>
+</html>
