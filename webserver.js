@@ -28,10 +28,6 @@ const fs = require('fs');
 const WebSocketServer = require('ws').Server
 const wss = new WebSocketServer({ port: 8081 });
 
-const DMX = require('dmx');
-const dmx = new DMX();
-var universe = dmx.addUniverse('universe1', 'enttec-open-usb-dmx', '/dev/cu.usbserial-AH06H3UD'); // /dev/ttyUSB0 on raspi
-
 
 
 /* ================================================= */
@@ -40,15 +36,37 @@ var universe = dmx.addUniverse('universe1', 'enttec-open-usb-dmx', '/dev/cu.usbs
 console.log("Raspi DMX Player".info);
 console.log("Version ".info + VERSION.version().info);
 
+const engine = require('./engine');
+engine.activateEngine();
+
 
 
 /* ================================================= */
 /*  VARIABLES                                        */
 /* ================================================= */
 var nextShowToEdit;
-var playShowInterval;
-
 var allSchedulers;
+
+/*
+// UN CORRUPT SCHEDULERS FILE
+var allSchedulers = {
+	schedulers: []
+}
+
+var newScheduler = {
+  	name: "name",
+  	showName: "showName",
+  	showFileName: "showFileName",
+  	frequency: "frequency",
+  	frequencyRepeat: "frequencyRepeat",
+  	startTime: "startTime",
+  	endTime: "endTime"
+}
+allSchedulers.schedulers.push(newScheduler)
+
+updateSchedulersJSON();
+
+*/
 readSchedulersJSON();
 
 
@@ -84,6 +102,7 @@ function formatDate(date) {
     return [year, month, day].join('-');
 }
 
+
 function createNewShow(showName, fileName, delayMS, data) {
 	data = data.replace(/\n/g, '');
 	var show = {
@@ -104,6 +123,7 @@ function createNewShow(showName, fileName, delayMS, data) {
 	})
 }
 
+
 function readSchedulersJSON() {
 	console.log(colors.cyan("Reading schedulers..."));
 	fs.readFile('./schedulers.JSON', function(err, data) {
@@ -120,6 +140,7 @@ function updateSchedulersJSON() {
 	  	}
 	})
 	console.log(colors.cyan("Updated saved schedulers file."));
+	engine.refreshEngine();
 }
 
 function addScheduler(name, showName, showFileName, frequency, frequencyRepeat, startTime, endTime) {
@@ -135,6 +156,7 @@ function addScheduler(name, showName, showFileName, frequency, frequencyRepeat, 
 	allSchedulers.schedulers.push(newScheduler)
 	console.log(colors.cyan("Created a new scheduler."));
 	updateSchedulersJSON();
+	engine.refreshEngine();
 }
 
 function returnObject(name, showName, showFileName, frequency, frequencyRepeat, startTime, endTime) {
@@ -153,6 +175,7 @@ function returnObject(name, showName, showFileName, frequency, frequencyRepeat, 
 function deleteSchedulerAtIndex(index) {
 	allSchedulers.schedulers.splice(index, 1);
 	updateSchedulersJSON();
+	engine.refreshEngine();
 }
 
 
@@ -166,27 +189,10 @@ function deleteSchedulerAtIndex(index) {
 
 
 
-// TEMP
-function playShow(show) {
-	console.log("Function playing show " + show.name);
-	console.log(show)
 
-	show.frames = JSON.parse(show.frames);
-	console.log(show)
 
-	var currentFrame = 0;
-	playShowInterval = setInterval(function(){
-		for (var i = 0; i < show.frames[currentFrame].length; i++) {
-			var ch = i + 1;
-			var val = show.frames[currentFrame][i];
-			//console.log("Set channel " + ch + " to value " + val);
-			universe.update({[ch]: val});
-		}
 
-		if (currentFrame < show.frames.length-1) currentFrame++;
-		else currentFrame = 0;
-	}, show.delayMS);
-}
+
 
 
 
@@ -217,6 +223,52 @@ http.createServer(function (req, res) {
 			//console.log(String(data));
 			res.end();
 		});
+
+
+	} else if (req.url === '/index.html') {
+
+		console.log("Serving " + req.url);	
+
+  		fs.readFile('.' + req.url, function(err, data) {
+			res.writeHead(200, {'Content-Type': 'text/html'});
+			var webpage = String(data).split('{{DATA}}');
+
+			var result = webpage[0];
+			result += `
+			<div class="panel">
+				<div class="card">
+					<h3>Status:</h3>
+					<p>Playing show <i>` + engine.getCurrentlyPlayingShow() + `</i></p>
+				</div>
+			</div>
+
+			<div class="panel">
+				<div class="card">
+					<h3><a href="./html/scheduler.html" class="hiddenA">Schedule:</a></h3>
+					<ul>
+						<li>Active scheduler: <i>` + engine.getCurrentSchedulerName() + `</i> until ` 
+						+ engine.getCurrentSchedulerEndTime() + `</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class="panel">
+				<div class="card">
+					<h3><a href="./html/dmx-control.html" class="hiddenA">Manual Control:</a></h3>
+					<p>Manual DMX channel control is currently <span class="bold">disabled.</span></p>
+				</div>
+			</div>`
+
+
+
+
+			engine.getCurrentlyPlayingShow();
+			result += webpage[1];
+
+			res.write(result);
+			res.end();
+		});
+
 
 	} else if (req.url === '/html/dmx-control.html') {
 
@@ -662,19 +714,33 @@ http.createServer(function (req, res) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* ================================================= */
 /*  WEB SOCKETS                                      */
 /* ================================================= */
 wss.on('connection', ((ws) => {
   	ws.on('message', (message) => {
-  		console.log(message)
+  		//console.log(message)
 
 	  	// DMX CHANNEL CONTROL WEBSOCKETS
 	  	if (message.substring(0, 6) == "setDMX") {
 	  		var ch = parseInt(message.substring(7, 10));
 	  		var val = parseInt(message.substring(11, 14));
-	  		console.log("Set channel " + ch + " to " + val)
-	  		universe.update({[ch]: val});
+	  		//console.log("Set channel " + ch + " to " + val)
+	  		engine.outputDMX(ch, val);
 	  	}
 
 
