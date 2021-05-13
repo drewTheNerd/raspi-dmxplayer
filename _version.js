@@ -3,6 +3,6 @@
 
 module.exports = {
   version: function () {
-    return "0.1.4"
+    return "0.2.0"
   }
 };
