@@ -84,8 +84,25 @@
 				    frequencyRepeat = [year, month, day].join('-');
 				}
 
-				var startTime = document.getElementById('start-time').value;
-				var endTime = document.getElementById('end-time').value;
+
+				var startTime;
+				var endTime;
+
+				if (document.getElementById('start-sunrise').checked) {
+					startTime = "sunrise";
+				} else if (document.getElementById('start-sunset').checked) {
+					startTime = "sunset";
+				} else {
+					startTime = document.getElementById('start-time').value;
+				}
+
+				if (document.getElementById('end-sunrise').checked) {
+					endTime = "sunrise";
+				} else if (document.getElementById('end-sunset').checked) {
+					endTime = "sunset";
+				} else {
+					endTime = document.getElementById('end-time').value;
+				}
 
 				ws.send("addScheduler('" + name + "', '" + showName + "', '" + showFileName + "', '" + frequency + "', '" + frequencyRepeat + "', '" + startTime + "', '" + endTime + "')");
 			}
@@ -115,6 +132,20 @@
 					document.getElementById('onetimeRepeatPicker').style.display = "none";
 				}
 			}
+
+			function sunsetSunriseChange(which) {
+				if (which == 1) {
+					document.getElementById('start-sunset').checked = false;
+				} else if (which == 2) {
+					document.getElementById('start-sunrise').checked = false;
+				}
+
+				if (which == 3) {
+					document.getElementById('end-sunset').checked = false;
+				} else if (which == 4) {
+					document.getElementById('end-sunrise').checked = false;
+				}
+			}
 		</script>
 	</head>
 	<body class="html-body">
@@ -142,9 +173,17 @@
 					<div class="scheduler-time-input-div">
 						Start Time: &nbsp;
 						<input type="time" class="scheduler-time-input" id="start-time"></input>
+						<input type="checkbox" class="sunrise-sunset-checkbox" id="start-sunrise" onchange="sunsetSunriseChange(1)">
+						<label>Sunrise</label>
+						<input type="checkbox" class="sunrise-sunset-checkbox" id="start-sunset" onchange="sunsetSunriseChange(2)">
+						<label>Sunset</label>
 						<br>
 						End Time: &nbsp;&nbsp;&nbsp;
 						<input type="time" class="scheduler-time-input" id="end-time"></input>
+						<input type="checkbox" class="sunrise-sunset-checkbox" id="end-sunrise" onchange="sunsetSunriseChange(3)">
+						<label>Sunrise</label>
+						<input type="checkbox" class="sunrise-sunset-checkbox" id="end-sunset" onchange="sunsetSunriseChange(4)">
+						<label>Sunset</label>
 						<br>
 					</div>
 
