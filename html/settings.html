@@ -32,6 +32,19 @@
 			ws.onclose = function() {
 			  console.log("Connection is closed...");
 			}
+
+
+			function updateLocation() {
+			  if (navigator.geolocation) {
+			    navigator.geolocation.getCurrentPosition(sendLocation);
+			  } else {
+			    console.log("Geolocation is not supported by this browser.");
+			  }
+			}
+
+			function sendLocation(position) {
+			  ws.send("Coordinates," + position.coords.latitude + "," + position.coords.longitude);
+			}
 		</script>
 	</head>
 	<body class="html-body">
@@ -47,7 +60,9 @@
 		
 		<div class="body">
 			<h1 class="bold">Settings</h1>
-			<p>Version: {{DATA}}</p>
+			<p>Version: {{DATA}}
+
+			<button onclick="updateLocation()">Update Location</button>
 		</div>
 	</body>
 </html>

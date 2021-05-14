@@ -29,6 +29,8 @@ const DMX = require('dmx');
 const dmx = new DMX();
 var universe = dmx.addUniverse('universe1', 'enttec-open-usb-dmx', '/dev/cu.usbserial-AH06H3UD'); // /dev/ttyUSB0 on raspi
 
+const sun = require('sun-time');
+
 
 
 /* ================================================= */
@@ -44,6 +46,9 @@ var cancelSchedulerJobs = [];
 
 var currentlyPlayingShow = "none";
 var currentScheduler = null;
+
+var coordinates = [0, 0];
+readCoordinates();
 
 
 
@@ -64,6 +69,15 @@ function resetAllChannels() {
 }
 
 
+function readCoordinates() {
+	console.log(colors.gray("ENGINE: Reading coordinates..."));
+	fs.readFile('./coordinates.JSON', function(err, data) {
+		coordinates = JSON.parse(String(data));
+		console.log(colors.gray(sun(parseFloat(coordinates[0]), parseFloat(coordinates[1]))));
+	});
+}
+
+
 
 /* ================================================= */
 /*  ENGINE FUNCTIONS                                 */
@@ -80,6 +94,32 @@ function activateScheduler(scheduler) {
 		show.frames = JSON.parse(show.frames);
 
 
+		var startHour = scheduler.startTime.substring(0, 2);
+		var startMinute = scheduler.startTime.substring(3, 5);
+		if (scheduler.startTime == "sunrise") {
+			var sunrise = sun(parseFloat(coordinates[0]), parseFloat(coordinates[1])).rise;
+			startHour = sunrise.substring(0, 2);
+			startMinute = sunrise.substring(3, 5);
+		} else if (scheduler.startTime == "sunset") {
+			var sunset = sun(parseFloat(coordinates[0]), parseFloat(coordinates[1])).set;
+			startHour = sunset.substring(0, 2);
+			startMinute = sunset.substring(3, 5);
+		}
+
+		var endHour = scheduler.endTime.substring(0, 2);
+		var endMinute = scheduler.endTime.substring(3, 5);
+		if (scheduler.endTime == "sunrise") {
+			var sunrise = sun(parseFloat(coordinates[0]), parseFloat(coordinates[1])).rise;
+			endHour = sunrise.substring(0, 2);
+			endMinute = sunrise.substring(3, 5);
+		} else if (scheduler.endTime == "sunset") {
+			var sunset = sun(parseFloat(coordinates[0]), parseFloat(coordinates[1])).set;
+			endHour = sunset.substring(0, 2);
+			endMinute = sunset.substring(3, 5);
+		}
+
+
+
 		var dayOfWeek = '*';
 		var month = '*';
 		var dayOfMonth = '*';
@@ -88,7 +128,6 @@ function activateScheduler(scheduler) {
 				dayOfMonth = '*';
 			} else {
 				dayOfMonth = '*/' + scheduler.frequencyRepeat;
-				// NOTE TO SELF - COME BACK TO THIS
 			}
 		} else if (scheduler.frequency == 'Weekly') {
 			dayOfWeek = scheduler.frequencyRepeat;
@@ -107,7 +146,7 @@ function activateScheduler(scheduler) {
 
 		if (dayOfWeek == '*' || dayOfWeek.includes(currentDayOfWeek) || (month == currentMonth && dayOfMonth == currentDayOfMonth)) {
 			var currentTimeInMinutes = (today.getHours()*60) + today.getMinutes();
-			var startTimeInMinutes = parseInt((scheduler.startTime.substring(0, 2)*60)) + parseInt(scheduler.startTime.substring(3, 5));
+			var startTimeInMinutes = parseInt((startHour*60)) + parseInt(startMinute);
 			var endTimeInMinutes = parseInt((scheduler.endTime.substring(0, 2)*60)) + parseInt(scheduler.endTime.substring(3, 5));
 
 			if (startTimeInMinutes < currentTimeInMinutes && currentTimeInMinutes <= endTimeInMinutes) {
@@ -128,7 +167,7 @@ function activateScheduler(scheduler) {
 			    }, show.delayMS);
 			}
 		} else {
-			var startDateString = scheduler.startTime.substring(3, 5) + ' ' + scheduler.startTime.substring(0, 2) + ' ' + dayOfMonth + ' ' + month + ' ' + dayOfWeek;
+			var startDateString = startMinute + ' ' + startHour + ' ' + dayOfMonth + ' ' + month + ' ' + dayOfWeek;
 			//console.log(colors.data("Start date:     " + startDateString));
 
 		    schedulerJobs[thisIntervalID] = schedule.scheduleJob(startDateString, function(){
@@ -153,8 +192,8 @@ function activateScheduler(scheduler) {
 
 
 
-	    var endTimeMinute = parseInt(scheduler.endTime.substring(3, 5)-1);
-	    var endTimeHour = scheduler.endTime.substring(0, 2);
+	    var endTimeMinute = parseInt(endMinute);
+	    var endTimeHour = parseInt(endHour);
 	    if (endTimeMinute == -1) {
 	    	endTimeHour--;
 	    	endTimeMinute = 59;
@@ -196,8 +235,12 @@ module.exports = {
 		console.log(colors.yellow("ENGINE: Refreshing engine..."));
 
 		for (var c = 0; c < schedulerJobs.length; c++) {
-			schedulerJobs[c].cancel();
-			cancelSchedulerJobs[c].cancel();
+			if (schedulerJobs[c] != undefined) {
+				schedulerJobs[c].cancel();
+			}
+			if (cancelSchedulerJobs[c] != undefined) {
+				cancelSchedulerJobs[c].cancel();
+			}
 		}
 		for (var c = 0; c < showInterval.length; c++) {
 			clearInterval(showInterval[c]);
@@ -238,61 +281,6 @@ module.exports = {
 	    universe.update({[ch]: val});
 	}
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

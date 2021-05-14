@@ -28,6 +28,8 @@ const fs = require('fs');
 const WebSocketServer = require('ws').Server
 const wss = new WebSocketServer({ port: 8081 });
 
+const sun = require('sun-time');
+
 
 
 /* ================================================= */
@@ -46,6 +48,7 @@ engine.activateEngine();
 /* ================================================= */
 var nextShowToEdit;
 var allSchedulers;
+var coordinates = [0, 0];
 
 /*
 // UN CORRUPT SCHEDULERS FILE
@@ -68,6 +71,7 @@ updateSchedulersJSON();
 
 */
 readSchedulersJSON();
+readCoordinates();
 
 
 /* ================================================= */
@@ -180,6 +184,25 @@ function deleteSchedulerAtIndex(index) {
 
 
 
+function readCoordinates() {
+	console.log(colors.gray("Reading coordinates..."));
+	fs.readFile('./coordinates.JSON', function(err, data) {
+		coordinates = JSON.parse(String(data));
+		//console.log(sun(parseFloat(coordinates[0]), parseFloat(coordinates[1])));
+	});
+}
+
+function updateCoordinates() {
+	var fileData = JSON.stringify(coordinates);
+	fs.writeFile('./coordinates.JSON', fileData, err => {
+	  	if (err) {
+	    	console.error(err)
+	    	return
+	  	}
+	})
+	console.log(colors.gray("Updated saved coordinates."));
+}
+
 
 
 
@@ -213,23 +236,13 @@ http.createServer(function (req, res) {
 	if (req.url.substring(0, 11) === '/socket.io/') {
 		// do nothing because this is not stored on the local server
 		console.log(colors.error("The requested URL does not exist on this server. (" + req.url + ")"));
-	} else if (req.url === '/') {
-  		// otherwise serve whatever file is asked for
-		console.log("Serving index file");	
-
-  		fs.readFile('./index.html', function(err, data) {
-			res.writeHead(200);
-			res.write(data);
-			//console.log(String(data));
-			res.end();
-		});
 
 
-	} else if (req.url === '/index.html') {
+	} else if (req.url === '/index.html' || req.url == '/') {
 
 		console.log("Serving " + req.url);	
 
-  		fs.readFile('.' + req.url, function(err, data) {
+  		fs.readFile('./index.html', function(err, data) {
 			res.writeHead(200, {'Content-Type': 'text/html'});
 			var webpage = String(data).split('{{DATA}}');
 
@@ -384,7 +397,9 @@ http.createServer(function (req, res) {
 			res.writeHead(200, {'Content-Type': 'text/html'});
 			var webpage = String(data).split('{{DATA}}');
 
-			var result = webpage[0] + VERSION.version() + webpage[1];
+			var result = webpage[0] + VERSION.version() + `</p>
+			<p>Coordinates: ` + coordinates[0] + `, ` + coordinates[1] + `</p>
+			` + webpage[1];
 
 			res.write(result);
 			res.end();
@@ -524,10 +539,38 @@ http.createServer(function (req, res) {
 						Start Time: &nbsp;
 						<input type="time" class="scheduler-time-input" id="start-time" value="` + allSchedulers.schedulers[index].startTime 
 						+ `"></input>
+						<input type="checkbox" class="sunrise-sunset-checkbox" id="start-sunrise" onchange="sunsetSunriseChange(1)"`
+
+						if (allSchedulers.schedulers[index].startTime == "sunrise") {
+							code += ` checked`;
+						}
+						code += `>
+						<label>Sunrise</label>
+						<input type="checkbox" class="sunrise-sunset-checkbox" id="start-sunset" onchange="sunsetSunriseChange(2)"`
+
+						if (allSchedulers.schedulers[index].startTime == "sunset") {
+							code += ` checked`;
+						}
+						code += `>
+						<label>Sunset</label>
 						<br>
 						End Time: &nbsp;&nbsp;&nbsp;
 						<input type="time" class="scheduler-time-input" id="end-time" value="` + allSchedulers.schedulers[index].endTime
 						 + `"></input>
+						<input type="checkbox" class="sunrise-sunset-checkbox" id="end-sunrise" onchange="sunsetSunriseChange(3)"`
+
+						if (allSchedulers.schedulers[index].endTime == "sunrise") {
+							code += ` checked="checked"`;
+						}
+						code += `>
+						<label>Sunrise</label>
+						<input type="checkbox" class="sunrise-sunset-checkbox" id="end-sunset" onchange="sunsetSunriseChange(4)"`
+
+						if (allSchedulers.schedulers[index].endTime == "sunset") {
+							code += ` checked="checked"`;
+						}
+						code += `>
+						<label>Sunset</label>
 						<br>
 					</div>
 
@@ -837,6 +880,17 @@ wss.on('connection', ((ws) => {
 	  	if (message.substring(0, 22) == "deleteSchedulerAtIndex") {
 	  		console.log(colors.cyan("Deleting scheduler at index " + message.substring(23, message.length-1)));
 	  		eval(message);
+	  	}
+
+
+
+
+	  	// SUNSET/SUNRISE SOCKETS
+	  	if (message.substring(0, 11) == "Coordinates") {
+	  		var messageSplit = message.split(',');
+	  		coordinates[0] = messageSplit[1];
+	  		coordinates[1] = messageSplit[2];
+	  		updateCoordinates();
 	  	}
 	  	
 	});
