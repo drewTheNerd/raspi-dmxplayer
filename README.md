@@ -5,7 +5,8 @@ Raspi DMX Player is an Node.JS app designed to play back DMX shows, controllable
 # Installation
 - First, download the code from this repository, unzip, and move to the Desktop folder.
 - Next, install nvm by running `curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash` and version 13.2.0 of NodeJS by running `nvm install 13.2.0`.
-- Lastly, install all required packages by running `npm install colors && npm install node-schedule && npm install dmx && npm install sun-time && npm install ip && `.
+- Lastly, install all required packages by running `npm install colors && npm install node-schedule && npm install dmx && npm install sun-time && npm install ip`.
+- To start, run the command `cd ~/Desktop/raspi-dmxplayer/ && node webserver.js`
 
 
 # Version History
