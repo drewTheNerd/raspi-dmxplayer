@@ -2,6 +2,12 @@
 Raspi DMX Player is an Node.JS app designed to play back DMX shows, controllable via a web interface. The final result will be a Raspberry Pi based device with optional cellular connectivity and up to 2 universes of DMX output, controllable by remotely connecting via RealVNC and opening up `localhost:8080/index.html`. Raspi DMX Player is written by and copyright of Drew Shipps.
 
 
+# Installation
+First, download the code from this repository, unzip, and move to the Desktop folder.
+Next, install nvm by running `curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash` and version `13.2.0` of NodeJS by running `nvm install 13.2.0`.
+Lastly, install all required packages by running `npm install dmx && `.
+
+
 # Version History
 ## Version 0.1.0 
 - initial rewrite after data loss. 
