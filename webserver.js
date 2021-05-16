@@ -6,7 +6,7 @@
 /* ================================================= */
 /*  IMPORT                                           */
 /* ================================================= */
-const VERSION = require('./_version');
+const VERSION = require('./javascript/version');
 const colors = require('colors');
 
 colors.setTheme({
@@ -29,6 +29,7 @@ const WebSocketServer = require('ws').Server
 const wss = new WebSocketServer({ port: 8081 });
 
 const sun = require('sun-time');
+const ip = require("ip");
 
 
 
@@ -38,7 +39,7 @@ const sun = require('sun-time');
 console.log("Raspi DMX Player".info);
 console.log("Version ".info + VERSION.version().info);
 
-const engine = require('./engine');
+const engine = require('./javascript/engine');
 engine.activateEngine();
 
 
@@ -50,26 +51,6 @@ var nextShowToEdit;
 var allSchedulers;
 var coordinates = [0, 0];
 
-/*
-// UN CORRUPT SCHEDULERS FILE
-var allSchedulers = {
-	schedulers: []
-}
-
-var newScheduler = {
-  	name: "name",
-  	showName: "showName",
-  	showFileName: "showFileName",
-  	frequency: "frequency",
-  	frequencyRepeat: "frequencyRepeat",
-  	startTime: "startTime",
-  	endTime: "endTime"
-}
-allSchedulers.schedulers.push(newScheduler)
-
-updateSchedulersJSON();
-
-*/
 readSchedulersJSON();
 readCoordinates();
 
@@ -130,14 +111,14 @@ function createNewShow(showName, fileName, delayMS, data) {
 
 function readSchedulersJSON() {
 	console.log(colors.cyan("Reading schedulers..."));
-	fs.readFile('./schedulers.JSON', function(err, data) {
+	fs.readFile('./config/schedulers.json', function(err, data) {
 		allSchedulers = JSON.parse(String(data));
 	});
 }
 
 function updateSchedulersJSON() {
 	var fileData = JSON.stringify(allSchedulers);
-	fs.writeFile('./schedulers.JSON', fileData, err => {
+	fs.writeFile('./config/schedulers.json', fileData, err => {
 	  	if (err) {
 	    	console.error(err)
 	    	return
@@ -186,7 +167,7 @@ function deleteSchedulerAtIndex(index) {
 
 function readCoordinates() {
 	console.log(colors.gray("Reading coordinates..."));
-	fs.readFile('./coordinates.JSON', function(err, data) {
+	fs.readFile('./config/coordinates.json', function(err, data) {
 		coordinates = JSON.parse(String(data));
 		//console.log(sun(parseFloat(coordinates[0]), parseFloat(coordinates[1])));
 	});
@@ -194,7 +175,7 @@ function readCoordinates() {
 
 function updateCoordinates() {
 	var fileData = JSON.stringify(coordinates);
-	fs.writeFile('./coordinates.JSON', fileData, err => {
+	fs.writeFile('./config/coordinates.json', fileData, err => {
 	  	if (err) {
 	    	console.error(err)
 	    	return
@@ -233,16 +214,11 @@ function updateCoordinates() {
 /*  HTTP SERVER                                      */
 /* ================================================= */
 http.createServer(function (req, res) {
-	if (req.url.substring(0, 11) === '/socket.io/') {
-		// do nothing because this is not stored on the local server
-		console.log(colors.error("The requested URL does not exist on this server. (" + req.url + ")"));
+	if (req.url === '/index.html' || req.url == '/') {
 
+		console.log("Serving index file");	
 
-	} else if (req.url === '/index.html' || req.url == '/') {
-
-		console.log("Serving " + req.url);	
-
-  		fs.readFile('./index.html', function(err, data) {
+  		fs.readFile('./html/index.html', function(err, data) {
 			res.writeHead(200, {'Content-Type': 'text/html'});
 			var webpage = String(data).split('{{DATA}}');
 
@@ -399,6 +375,7 @@ http.createServer(function (req, res) {
 
 			var result = webpage[0] + VERSION.version() + `</p>
 			<p>Coordinates: ` + coordinates[0] + `, ` + coordinates[1] + `</p>
+			<p>IP Address: ` + ip.address() + `</p>
 			` + webpage[1];
 
 			res.write(result);
@@ -413,15 +390,14 @@ http.createServer(function (req, res) {
   		var resultTable = [];
 		var i = 0;
   
-		filenames.forEach((file) => {
-			fs.readFile('./shows/' + file, function(err, data) {
-				if (file[0] != '.') {
-					var thisShow = JSON.parse(String(data));
-					resultTable[i] = '<option value="' + filenames[i] + ' (' + thisShow.name + ')">' 
-					+ filenames[i] + ' (' + thisShow.name + ')</option>';
-				}
-				i++;
-			});
+		filenames.forEach(function(file) {
+			if (file[0] != '.') {
+				var contents = fs.readFileSync('./shows/' + file, 'utf8');
+				var thisShow = JSON.parse(String(contents));
+				resultTable[i] = '<option value="' + file + ' (' + thisShow.name + ')">' 
+				+ file + ' (' + thisShow.name + ')</option>';
+			}
+			i++;
 		});
 
 		setTimeout(function(){
@@ -790,7 +766,7 @@ wss.on('connection', ((ws) => {
 	  	if (message.substring(0, 21) == "restoreDMXchannelSave") {
 	  		var ch = message.substring(22, 25);
 
-	  		fs.readFile('./dmx-channels-save.txt', function(err, data) {
+	  		fs.readFile('./config/dmx-channels-save.txt', function(err, data) {
 				var all = String(data).split(',');
 				var chValCombo = all[parseInt(ch)-1];
 				var val = chValCombo.substring(4, 7);
@@ -803,12 +779,12 @@ wss.on('connection', ((ws) => {
 			var val = message.substring(19, 22);
 			var fileData = "";
 
-	  		fs.readFile('./dmx-channels-save.txt', function(err, data) {
+	  		fs.readFile('./config/dmx-channels-save.txt', function(err, data) {
 				fileData = String(data).split(',');
 				fileData[parseInt(ch)-1] = String(ch + ":" + val + "");
 		  		var newFileData = fileData.join(",");
 
-				fs.writeFile('./dmx-channels-save.txt', newFileData, err => {
+				fs.writeFile('./config/dmx-channels-save.txt', newFileData, err => {
 				  	if (err) {
 				    	console.error(err)
 				    	return
