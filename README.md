@@ -49,3 +49,9 @@ Raspi DMX Player is an Node.JS app designed to play back DMX shows, controllable
 ## Version 0.2.1
 - Added sunrise and sunset options for scheduler start/end times
 - tested show recording and decided on making a separate nodeJS app for that
+
+## Version 0.3.0
+- Adjusted folder structure
+- Fixed a bug where files would not save properly on raspberry pi, because of `.JSON` vs `.json` file extensions
+- Fixed a bug where the shows list dropdown on the New Scheduler and Edit Scheduler pages was out of order
+- Fixed a bug where a scheduler with a start or end date of sunrise or sunset would not properly resume

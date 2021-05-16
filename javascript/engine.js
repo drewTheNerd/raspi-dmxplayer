@@ -6,7 +6,7 @@
 /* ================================================= */
 /*  IMPORT                                           */
 /* ================================================= */
-const VERSION = require('./_version');
+const VERSION = require('./version');
 const colors = require('colors');
 
 colors.setTheme({
@@ -57,7 +57,7 @@ readCoordinates();
 /* ================================================= */
 function readSchedulersJSON() {
 	console.log(colors.cyan("ENGINE: Reading schedulers..."));
-	fs.readFile('./schedulers.JSON', function(err, data) {
+	fs.readFile('./config/schedulers.json', function(err, data) {
 		allSchedulers = JSON.parse(String(data));
 	});
 }
@@ -71,7 +71,7 @@ function resetAllChannels() {
 
 function readCoordinates() {
 	console.log(colors.gray("ENGINE: Reading coordinates..."));
-	fs.readFile('./coordinates.JSON', function(err, data) {
+	fs.readFile('./config/coordinates.json', function(err, data) {
 		coordinates = JSON.parse(String(data));
 		console.log(colors.gray(sun(parseFloat(coordinates[0]), parseFloat(coordinates[1]))));
 	});
@@ -83,13 +83,20 @@ function readCoordinates() {
 /*  ENGINE FUNCTIONS                                 */
 /* ================================================= */
 function activateScheduler(scheduler) {
-	console.log(colors.cyan("ENGINE: Activating scheduler \"" + scheduler.name + "\""));
+	console.log(colors.blue("ENGINE: Activating scheduler \"" + scheduler.name + "\""));
 
 	const thisIntervalID = intervalIDcounter;
 	intervalIDcounter++;
 
 	var show;
 	fs.readFile('./shows/' + scheduler.showFileName, function(err, data) {
+		if (err) {
+			if (err.errno == -2) {
+				console.log(colors.error("ENGINE ERROR: Scheduler contains reference to non existent show (" + scheduler.name + ")"));
+				return;
+			}
+		}
+
 		show = JSON.parse(String(data));
 		show.frames = JSON.parse(show.frames);
 
@@ -132,7 +139,7 @@ function activateScheduler(scheduler) {
 		} else if (scheduler.frequency == 'Weekly') {
 			dayOfWeek = scheduler.frequencyRepeat;
 		} else if (scheduler.frequency == 'One-Time') {
-			// COME BACK TO THIS FOR CALCULATING YEAR
+			// COME BACK TO THIS FOR CALCULATING YEAR - maybe use if currentYear != schedulerRepeat.year return
 			month = scheduler.frequencyRepeat.substring(8, 10);
 			dayOfMonth = scheduler.frequencyRepeat.substring(5, 7);
 		}
@@ -147,10 +154,10 @@ function activateScheduler(scheduler) {
 		if (dayOfWeek == '*' || dayOfWeek.includes(currentDayOfWeek) || (month == currentMonth && dayOfMonth == currentDayOfMonth)) {
 			var currentTimeInMinutes = (today.getHours()*60) + today.getMinutes();
 			var startTimeInMinutes = parseInt((startHour*60)) + parseInt(startMinute);
-			var endTimeInMinutes = parseInt((scheduler.endTime.substring(0, 2)*60)) + parseInt(scheduler.endTime.substring(3, 5));
+			var endTimeInMinutes = parseInt((endHour*60)) + parseInt(endMinute);
 
 			if (startTimeInMinutes < currentTimeInMinutes && currentTimeInMinutes <= endTimeInMinutes) {
-				console.log(colors.yellow('ENGINE: Resuming show ' + show.name));
+				console.log(colors.yellow('ENGINE: Resuming show "' + show.name + '" (scheduler "' + scheduler.name + '")'));
 			    currentlyPlayingShow = show.name;
 			    currentScheduler = scheduler;
 
@@ -171,7 +178,7 @@ function activateScheduler(scheduler) {
 			//console.log(colors.data("Start date:     " + startDateString));
 
 		    schedulerJobs[thisIntervalID] = schedule.scheduleJob(startDateString, function(){
-			    console.log(colors.yellow('ENGINE: Playing show ' + show.name));
+				console.log(colors.yellow('ENGINE: Playing show "' + show.name + '" (scheduler "' + scheduler.name + '")'));
 			    currentlyPlayingShow = show.name;
 			    currentScheduler = scheduler;
 
