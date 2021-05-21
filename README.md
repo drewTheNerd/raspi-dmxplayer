@@ -9,6 +9,8 @@ Raspi DMX Player is an Node.JS app designed to play back DMX shows, controllable
 - To start, run the command `cd ~/Desktop/raspi-dmxplayer/ && node webserver.js`
 
 # Running On Boot
+- Use pm2 to launch the app (instead of using `node webserver.js` like usual).
+- Then generate a startup script by running `pm2 startup`.
 - https://pm2.keymetrics.io/docs/usage/quick-start/
 
 
